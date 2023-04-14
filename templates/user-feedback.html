@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "feedback.html" as fb %}
+
+{% block title %}Feedback!{% endblock %}
+{% block h1 %}
+{{ user.username }}
+<form class="d-inline" action="/users/{{user.username}}/feedback/add" method="GET">
+    <button type="submit" class="btn btn-link text-decoration-none text-success">Add Feedback <i class="fas fa-plus-square"></i></button>
+</form>
+<form class="d-inline" action="/users/{{user.username}}/delete" method="POST">            
+    <button type="submit" class="btn btn-link text-decoration-none text-danger">Delete User <i class="fas fa-user-times"></i></button>
+</form>
+{% endblock %}
+
+
+{% block content %}
+<p><strong>First Name:</strong> {{ user.first_name }} <strong>Last Name:</strong> {{ user.last_name }} <strong>Email:</strong> {{ user.email }}</p>
+<h3>Feedback:</h3>
+<br>
+{% for post in user.feedback %}
+{{ fb.feedback(post, True) }}
+{% endfor %}
+
+{% endblock %}

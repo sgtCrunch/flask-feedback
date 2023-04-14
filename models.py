@@ -1,10 +1,14 @@
-"""Models for Blogly."""
+"""Models for feedback"""
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import backref
+from flask_bcrypt import Bcrypt
 from datetime import datetime
 
 db = SQLAlchemy()
+
+bcrypt = Bcrypt()
 
 
 def connect_db(app):
@@ -19,78 +23,43 @@ class User(db.Model):
 
     __tablename__ = "users"
 
-    id = db.Column(db.Integer,
-                   primary_key=True,
-                   autoincrement=True)
-    first_name = db.Column(db.String(50),
-                     nullable=False)
-    last_name = db.Column(db.String(50),
-                     nullable=False)
-    img_url = db.Column(db.String(), nullable=True, default="profile.png")
+    username = db.Column(db.String(20), primary_key=True)
+    password = db.Column(db.String, nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
 
     @hybrid_property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
-
-
-    def __repr__(self):
-        """Show info about user."""
-
-        u = self
-        return f"<User {u.id} {u.first_name} {u.last_name} {u.img_url}>"
     
-class Post(db.Model):
-    """Posts Model"""
+    @classmethod
+    def register(cls, username, password, email, first_name, last_name):
+        print(email)
+        hashed = bcrypt.generate_password_hash(password)
+        hashed_utc = hashed.decode("utf8")
 
-    __tablename__ = "posts"
-
-    id = db.Column(db.Integer,
-                   primary_key=True,
-                   autoincrement=True)
-    title = db.Column(db.String(50),
-                     nullable=False)
-    content = db.Column(db.String(),
-                     nullable=False)
-    created_at = db.Column(db.DateTime, 
-                           nullable=False, 
-                           default=datetime.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    user = db.relationship("User", backref='posts')
-
-    tags = db.relationship("Tag", secondary="post_tag", backref="posts" )
-
-    tags_added = db.relationship("PostTag")
+        return cls(username=username, password=hashed_utc, email=email, first_name=first_name, last_name=last_name)
     
-    def __repr__(self):
-        """Show info about user."""
-        p = self
-        return f"<Post {p.id} {p.title} {p.content} {p.created_at}>"
+    @classmethod
+    def authenticate(cls, username, password):
 
-class Tag(db.Model):
-    """Tags Model"""
+        user = User.query.filter_by(username=username).first()
 
-    __tablename__ = "tags"
+        if user and bcrypt.check_password_hash(user.password, password):
+            return user
+        else:
+            return False
 
-    id = db.Column(db.Integer,
-                   primary_key=True,
-                   autoincrement=True)
-    name = db.Column(db.String(50),
-                     nullable=False, unique=True)
     
-    def __repr__(self):
-        """Show info about user."""
-        t = self
-        return f"<Tag {t.id} {t.name}>"
-    
-class PostTag(db.Model):
-    """PostTag Model"""
+class Feedback(db.Model):
+    """Feedback Model"""
 
-    __tablename__ = "post_tag"
+    __tablename__ = "feedback"
 
-    tag_id = db.Column(db.Integer,
-                       db.ForeignKey('tags.id'),
-                        primary_key=True)
-    post_id = db.Column(db.Integer,
-                       db.ForeignKey('posts.id'),
-                        primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.String(), nullable=False)
+    username = db.Column(db.String(), db.ForeignKey('users.username'))
+
+    user = db.relationship("User", backref= backref("feedback", cascade="all,delete"))
